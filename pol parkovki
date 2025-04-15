@@ -1,42 +1,20 @@
 #include <Wire.h>
 #include <VL53L0X.h>
-#include <iostream>
-#include <string>
-#include <curl/curl.h>
 VL53L0X lox;
+#include <WiFi.h>
+#include <HTTPClient.h>
 
+// Параметры Wi-Fi
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+// IP-адрес сервера и путь
+const char* serverIP = "192.168.1.100"; // замените на адрес вашего сервера
+const int serverPort = 80; // порт, если не 80 — укажите свой
+const char* endpoint = "/receive"; // путь на сервере
 int main() {
-    const bool mesto = True
-    CURL *curl;
-    CURLcode res;
-
-    std::string variable = "HelloFromCPP";
-    std::string postFields = "data=" + variable;
-
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
-
-    if(curl) {
-        // Устанавливаем URL локального сервера
-        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000/receive");
-
-        // Устанавливаем метод POST и тело запроса
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
-
-        // Выполняем запрос
-        res = curl_easy_perform(curl);
-
-        // Проверка на ошибки
-        if(res != CURLE_OK)
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-
-        // Освобождаем ресурсы
-        curl_easy_cleanup(curl);
-    }
-
-    curl_global_cleanup();
-    return charge;
-}
+  const bool mesto = True
+  h
 
 
 void setup() {
@@ -48,12 +26,24 @@ void setup() {
   lox.setTimeout(500);
   // параметры для режима высокой точности
   lox.setMeasurementTimingBudget(200000);
+
+
+  WiFi.begin(ssid, password);
+  Serial.print("Подключение к Wi-Fi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi подключен!");
+}
 }
 void charging(){
-  while millis()<60000:
+  while (millis()<60000 and dist < 50) {
   time = millis()
   
   charge = time/60000*100
+  }
 }
 void loop() {
   // Измерение
@@ -63,7 +53,34 @@ void loop() {
   delay(250);
   if dist < 50:
     
-    *mesto = False
+    bool mesto = False
     charging();
     main();
+    delay(5000);
+
+
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    
+    int mesto; // переменная, которую отправляем
+    String url = "http://" + String(serverIP) + ":" + String(serverPort) + String(endpoint) + "?value=" + String(mesto);
+
+    Serial.println("Отправка GET-запроса: " + url);
+
+    http.begin(url);
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0) {
+      Serial.println("Ответ сервера: " + String(httpResponseCode));
+      String response = http.getString();
+      Serial.println("Тело ответа: " + response);
+    } else {
+      Serial.println("Ошибка отправки запроса");
+    }
+
+    http.end();
+  }
+
+  delay(10000); // отправка каждые 10 секунд
+}
 }
