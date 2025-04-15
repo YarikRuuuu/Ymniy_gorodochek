@@ -1,0 +1,29 @@
+
+#include <BH1750.h>
+#include <Wire.h>
+
+BH1750 lightMeter;
+#define PIN_LED 13
+
+
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+  lightMeter.begin();
+  pinMode(PIN_LED, OUTPUT);
+}
+
+void loop() {
+  float lux = lightMeter.readLightLevel(); // считывание освещенности
+  Serial.print("Освещенность: ");
+  Serial.print(lux);
+  Serial.println(" Люкс");
+  delay(1000);
+  if (val < 300) {
+  
+    digitalWrite(PIN_LED, HIGH);
+  } else {
+  
+    digitalWrite(PIN_LED,  LOW);
+  }
+}
