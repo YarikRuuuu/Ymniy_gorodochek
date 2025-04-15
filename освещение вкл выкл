@@ -19,7 +19,7 @@ void loop() {
   Serial.print(lux);
   Serial.println(" Люкс");
   delay(1000);
-  if (val < 300) {
+  if (val < 800) {
   
     digitalWrite(PIN_LED, HIGH);
   } else {
