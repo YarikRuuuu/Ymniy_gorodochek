@@ -1,0 +1,69 @@
+#include <Wire.h>
+#include <VL53L0X.h>
+#include <iostream>
+#include <string>
+#include <curl/curl.h>
+VL53L0X lox;
+
+int main() {
+    const bool mesto = True
+    CURL *curl;
+    CURLcode res;
+
+    std::string variable = "HelloFromCPP";
+    std::string postFields = "data=" + variable;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+
+    if(curl) {
+        // Устанавливаем URL локального сервера
+        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8000/receive");
+
+        // Устанавливаем метод POST и тело запроса
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
+
+        // Выполняем запрос
+        res = curl_easy_perform(curl);
+
+        // Проверка на ошибки
+        if(res != CURLE_OK)
+            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+
+        // Освобождаем ресурсы
+        curl_easy_cleanup(curl);
+    }
+
+    curl_global_cleanup();
+    return charge;
+}
+
+
+void setup() {
+  // Инициализация последовательного порта
+  Serial.begin(115200);
+  // Инициализация датчика
+  Wire.begin();
+  lox.init();
+  lox.setTimeout(500);
+  // параметры для режима высокой точности
+  lox.setMeasurementTimingBudget(200000);
+}
+void charging(){
+  while millis()<60000:
+  time = millis()
+  
+  charge = time/60000*100
+}
+void loop() {
+  // Измерение
+  float dist = lox.readRangeSingleMillimeters();
+  // Вывод измеренных значений в терминал
+  Serial.println("Distance  = " + String(dist, 0) + " mm  ");
+  delay(250);
+  if dist < 50:
+    
+    *mesto = False
+    charging();
+    main();
+}
