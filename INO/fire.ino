@@ -1,5 +1,11 @@
 #include <Wire.h>
 #include <MGS_FR403.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char WIFI_SSID[] = "PSI";
+const char WIFI_PASSWORD[] = "PSI";
+
 MGS_FR403 Fire;
 
 void setup() {
@@ -15,4 +21,10 @@ void loop() {
   Serial.print("Видимый: ");
   Serial.println(String(Fire.vis_data, 1));
   delay(500);
+
+  //
+  if (Fire.ir_data > 2500){
+
+  }
+  //
 }
