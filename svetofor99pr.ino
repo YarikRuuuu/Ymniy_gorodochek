@@ -40,9 +40,10 @@ void setup() {
   Serial.begin(9600);
   myTime = micros();
   if (((myTime / 1000000) % 60) == 0) {
-      rec = trf1 / (distance1(trfc1) + distance2(trfc2)) * 30;
+      rec = (trfc1 / (distance1(trfc1) + distance2(trfc2))) * 30;
   }
-  FastLED.addLeds <WS2812, PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds <WS2812, PIN, GRB>(leds1, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds <WS2812, PIN, GRB>(leds2, NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(50);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -139,35 +140,40 @@ void loop() {
   Serial.println("Air humidity = " + String(humidity, 1) + " %");
   Serial.println("Air pressure = " + String(pressure, 1) + " hPa"); // 1 mmHg = 1 hPa / 1.33
   if (WiFi.status() == WL_CONNECTED) {
-        sendSensorData(co2, temperature, humidity, pressure, trf1, trf2;
+        sendSensorData(co2, temperature, humidity, pressure, trfc1, trfc2);
   }
-  // СДЕЛАЙТЕ ПРОСТО СЧЕТЧИК МАШИН И НАЗОВИТЕ ИХ trf1 и trf2
   delay(250);
 }
 
-void distance1(int trfc1) {
+int distance1(int trfc1) {
   bool h = false;
   if (lox1.readRangeSingleMillimeters() < #######) {
       h = true;
   }
   if (h && lox1.readRangeSingleMillimeters() > #######) {
-      trfc1 += 1
+      trfc1 += 1;
   }
   if (lox1.readRangeSingleMillimeters() > #######) {
       h = false;
   }
+  if (((myTime / 1000000) % 60) == 0) {
+    return trfc1;
+  }
 }
 
-void distance2(int trfc2) {
+int distance2(int trfc2) {
   bool h1 = false;
   if (lox2.readRangeSingleMillimeters() < #######) {
       h1 = true;
   }
   if (h1 && lox2.readRangeSingleMillimeters() > #######) {
-      trfc2 += 1
+      trfc2 += 1;
   }
   if (lox2.readRangeSingleMillimeters() > #######) {
       h1 = false;
+  }
+  if (((myTime / 1000000) % 60) == 0) {
+    return trfc2;
   }
 }
 
