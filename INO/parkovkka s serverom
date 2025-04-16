@@ -1,0 +1,137 @@
+// Определения пинов
+#define DISTANCE_SENSOR_PIN A0 // Аналоговый пин для датчика расстояния
+#define LEAK_SENSOR_PIN A1     // Аналоговый пин для датчика протечки
+#define FLAME_SENSOR_PIN A2    // Аналоговый пин для датчика пламени
+#define STATUS_LED_PIN 13      // Пин для светодиода, показывающего статус парковки
+#define SERVER_UPDATE_INTERVAL 5000 // Интервал отправки данных на сервер (в миллисекундах)
+
+// Переменные
+bool isOccupied = false;
+bool isLeakDetected = false;
+bool isFlameDetected = false;
+int distanceValue = 0;
+unsigned long lastServerUpdate = 0;
+bool isCharging = false;
+unsigned long chargingStartTime = 0;
+float charge = 0.0;
+
+// Настройки сервера (замените на свои)
+const char* serverAddress = "your_server_address.com";
+const int serverPort = 80;
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "your_SSID";
+const char* password = "your_PASSWORD";
+
+
+
+
+
+void charging(){
+  if (!isCharging && dist < DISTANCE_THRESHOLD) {
+    // Начало зарядки
+    isCharging = true;
+    chargingStartTime = millis();
+    Serial.println("Начало зарядки");
+  }
+
+  if (isCharging) {
+    unsigned long currentTime = millis();
+    unsigned long elapsedTime = currentTime - chargingStartTime;
+
+    if (elapsedTime < CHARGE_TIME && dist < DISTANCE_THRESHOLD) {
+      // Зарядка продолжается
+      charge = ((float)elapsedTime / (float)CHARGE_TIME) * 100.0;
+      Serial.print("Процент зарядки: ");
+      Serial.println(charge);
+
+      // Отправка данных на сервер (пример)
+      sendChargeDataToServer(charge);
+
+    } else {
+      // Зарядка завершена или электромобиль уехал
+      isCharging = false;
+      if (dist >= DISTANCE_THRESHOLD) {
+        Serial.println("Зарядка прервана: электромобиль уехал");
+      } else {
+        Serial.println("Зарядка завершена");
+        charge = 100.0;
+        sendChargeDataToServer(charge);
+      }
+      charge = 0.0; // Сбрасываем процент зарядки
+    }
+  }
+}
+
+
+void setup() {
+  Serial.begin(115200);
+
+  // Подключение к WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  pinMode(STATUS_LED_PIN, OUTPUT);
+}
+
+void loop() {
+  // Чтение данных с датчиков
+  distanceValue = analogRead(DISTANCE_SENSOR_PIN);
+  isLeakDetected = (analogRead(LEAK_SENSOR_PIN) > 500); // Порог для датчика протечки (нужно подобрать)
+  isFlameDetected = (analogRead(FLAME_SENSOR_PIN) > 500); // Порог для датчика пламени (нужно подобрать)
+
+  // Определение занятости парковки (нужно откалибровать значение)
+  isOccupied = (distanceValue < 50); // Порог для датчика расстояния (нужно подобрать)
+
+  // Обновление светодиода статуса
+  digitalWrite(STATUS_LED_PIN, isOccupied ? HIGH : LOW);
+
+  // Отправка данных на сервер (периодически)
+  if (millis() - lastServerUpdate > SERVER_UPDATE_INTERVAL) {
+    sendDataToServer();
+    lastServerUpdate = millis();
+  }
+
+  delay(100);
+}
+
+void sendDataToServer() {
+  if (WiFi.status() == WL_CONNECTED) {
+
+    HTTPClient http;
+
+    http.begin(serverAddress, serverPort, "/update_parking_data");  // Замените "/update_parking_data" на ваш URL
+    charging();
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    String httpRequestData = "isOccupied=" + String(isOccupied) +
+                             "&isLeakDetected=" + String(isLeakDetected) +
+                             "&isFlameDetected=" + String(isFlameDetected) +
+                             "&distanceValue=" + String(distanceValue);
+
+    int httpResponseCode = http.POST(httpRequestData);
+
+    if (httpResponseCode > 0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String response = http.getString();
+      Serial.println(response);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+  } else {
+    Serial.println("WiFi Disconnected");
+  }
+}
