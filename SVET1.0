@@ -86,7 +86,7 @@ void loop() {
   http.end();
 
 
-  if (LA=="false" or LA=="unknown" or LA==""){
+  if (LA=="false" or LA=="unknown"){
 
   setBusChannel(0x07);
   float light_7 = LightSensor_7.readLightLevel();
@@ -182,11 +182,6 @@ void loop() {
 
   }
 
-  LA="";
-  LA_ON1="";
-  LA_ON2="";
-  LA_ON3="";
-  LA_ON4="";
 
   setBusChannel(0x03);
   float t = bme280.readTemperature();
