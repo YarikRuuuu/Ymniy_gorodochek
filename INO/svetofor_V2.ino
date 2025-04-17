@@ -99,6 +99,16 @@ void loop() {
   Serial.print(mySensor.TVOC);
   Serial.println(" ppb");
 
+  if (mySensor.CO2 <= 600){
+    Serial.println("CO2 concentration level: 1");
+  }
+  else if (mySensor.CO2 <= 1000){
+    Serial.println("CO2 concentration level: 2");
+  }
+  else if (mySensor.CO2 > 1000){
+    Serial.println("CO2 concentration level: 3");
+  }
+
   setBusChannel(0x07);
   float dist_1 = lox_1.readRangeSingleMillimeters();
   // Вывод измеренных значений в терминал
