@@ -1,0 +1,182 @@
+// Подключаем библиотеки
+#include "WiFi.h"
+#include "AsyncUDP.h"
+#include "ESPmDNS.h"
+
+// Определяем количество плат
+#define NBOARDS 10
+
+// Определяем номер этой платы
+const unsigned int NUM = 3;
+
+struct multidata {
+  uint8_t num; // Номер платы, у каждой команды свой номер, который соответствует номеру полигона, номер полигона можно просмотреть на ФОТО.
+  unsigned long millis;
+  uint16_t sensor;
+  IPAddress boardIP; // IP-адрес платы в локальной сети.
+  String DisctrictName;
+  // Умные фонари
+  bool LightEnable[4];  // Массив состояний 4 фонарей, расположение фонарей можно просмотреть на ФОТО, True - фонарь включен, False - фонарь выключен.
+  bool LightEnable_FromServer[4]; // Массив для включение/выключение каждого фонаря в отдельности с городского сервера, параметр задается с городского сервера.
+  int LightLevel; // Усредненное значение освещенности на районе.
+  int LightLevel_FromServer; // Степень освещенности, задаваемая с городского сервера 0-100%.
+
+
+  // Умный светофор
+  byte TrafficCongestion_1; // усредненные данные о загруженности улицы "1" (машин в минуту)
+  byte TrafficCongestion_2; // усредненные данные о загруженности улицы "2" (машин в минуту)
+
+  byte EnablingSignalCongestion_1; // информация о статусе светофора для улицы "1"
+  byte EnablingSignalCongestion_2; // информация о статусе светофора для улицы "2"
+  // Требование к передачи статуса светофора. 0 - разрешающий сигнал светофора (зеленый), 1 - предупреждающий сигнал светофора (желтый), 2 - запрещающий сигнал светофора (красный) 
+
+  byte TrafficLightStatus_FromServer; // ручное управление светофором для улицы "1" с городского сервера, со следующим описанием 0 - разрешающий сигнал светофора (зеленый), 1 - предупреждающий сигнал светофора (желтый), 2 - запрещающий сигнал светофора (красный), на противоположной улице активируется противоположный сигнал.
+
+
+  // Умный шлагбаум
+  int IndexDeviationIndex; // Индекс отлонения поезда от расписания, в секундах.
+  bool RelocationStatus; // Состояние Ж/Д переезда, False - открыт, True - закрыт.
+  bool RelocationStatus_FromServer; // Ручное управление Ж/Д переездом с городского сервера, 0 - открыт, 1 - закрыт. (Только с разрешающего сигнала)
+  
+  String TrainSchedule_FromServer; //Время прибытия поезда вида чч:мм:сс
+
+  // Умная парковка
+  bool ParkingOccupancy; // Занятость парковки, False - не занята, True - занята.
+  byte ParkingChargeLevel; // Уровень заряда электрокара, стоящего на парковке от 0 до 100 %, если на парковке отсутствует электрокар, то передается 0.
+  bool ParkingReservations; // Бронирование парковки, false - парковка не забронирована, True - парковка забронирована
+
+  // Остальное
+  String RecommendationsClothing; // Рекомендации по одежде.
+  String RecommendationsPollution; // Рекомендации по воздержанию прибытия в микро-район.
+
+  float TemperatureDistrict; // Температура воздуха в микро-районе.
+  float HumidityDistrict; // Влажность воздуха в микро-районе.
+  float PressureDistrict; // Атмсоферное давление в микро-районе.
+
+  bool ModeDevice_FromSerser; // Флаг, разрешающий управлять устройствами с локального сервера False - автоматический режим, устройства работают в штатном режиме (управление с локального сервера), True - ручной режим, устройства подчинаются командам с городского сервера.
+};
+
+// struct multidata {
+//     /* Номер платы (необходим для быстрого доступа по индексу
+//     в массиве структур) */
+//     uint8_t num;
+//     // Текущие millis платы
+//     unsigned long millis;
+//     /* В структуру можно добавлять элементы
+//     например, ip-адрес текущей платы:*/
+//     IPAddress boardIP;
+//     // или показания датчика:
+//     uint16_t sensor;
+// };
+
+// Массив структур для обмена
+multidata data[NBOARDS] {0};
+
+/* Определяем имена для mDNS */
+// для ведущей платы
+const char* master_host = "CityServer";
+// приставка имени ведомой платы
+const char* slave_host = "DPUG";
+
+// Определяем название и пароль точки доступа
+const char* SSID = "TP-Link_4F90";
+const char* PASSWORD = "NTOContest202324";
+
+// Определяем порт
+const uint16_t PORT = 48475;
+
+// Создаём объект UDP соединения
+AsyncUDP udp;
+
+// Определяем callback функцию обработки пакета
+void parsePacket(AsyncUDPPacket packet)
+{
+    const multidata* tmp = (multidata*)packet.data();
+
+    // Вычисляем размер данных
+    const size_t len = packet.length() / sizeof(data[0]);
+
+    // Если адрес данных не равен нулю и размер данных больше нуля...
+    if (tmp != nullptr && len > 0) {
+
+        // Проходим по элементам массива
+        for (size_t i = 0; i < len; i++) {
+
+            // Если это не ESP на которой выполняется этот скетч
+            if (i != NUM) {
+                // Обновляем данные массива структур
+                data[i].num = tmp[i].num;
+                data[i].millis = tmp[i].millis;
+                data[i].boardIP = tmp[i].boardIP;
+                data[i].sensor = tmp[i].sensor;
+            }
+        }
+    }
+}
+
+void setup()
+{
+    // Добавляем номер этой платы в массив структур
+    data[NUM].num = NUM;
+
+    // Инициируем последовательный порт
+    Serial.begin(115200);
+
+    // Инициируем WiFi
+    WiFi.begin(SSID, PASSWORD);
+    // Ждём подключения WiFi
+    Serial.print("Подключаем к WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(100);
+    }
+    Serial.println();
+
+    // Записываем адрес текущей платы в элемент структуры
+    data[NUM].boardIP = WiFi.localIP();
+
+    // Инициируем mDNS с именем "esp32slave" + номер платы
+    if (!MDNS.begin(String(slave_host + NUM).c_str())) {
+        Serial.println("не получилось инициировать mDNS");
+    }
+
+    // Узнаём IP адрес платы с UDP сервером
+    IPAddress server = MDNS.queryHost(master_host);
+
+    // Если удалось подключиться по UDP
+    if (udp.connect(server, PORT)) {
+
+        Serial.println("UDP подключён");
+
+        // вызываем callback функцию при получении пакета
+        udp.onPacket(parsePacket);
+    }
+}
+
+void loop()
+{
+    // Записываем текущие millis в элемент массива, соответствующий данной плате
+    data[NUM].millis = millis();
+    // Записываем показания датчика (для демонстрации это просто millis / 10)
+    data[NUM].sensor = millis() / 10;
+
+    // Отправляем данные этой платы побайтово
+    udp.broadcastTo((uint8_t*)&data[NUM], sizeof(data[0]), PORT);
+
+    // Выводим значения элементов в последовательный порт
+    for (size_t i = 0; i < NBOARDS; i++) {
+        Serial.print("IP адрес платы: ");
+        Serial.print(data[i].boardIP);
+        Serial.print(", порядковый номер: ");
+        Serial.print(data[i].num);
+        Serial.print(", текущие millis: ");
+        Serial.print(data[i].millis);
+        Serial.print(", значение датчика: ");
+        Serial.print(data[i].sensor);
+        Serial.print("; ");
+        Serial.println();
+    }
+    Serial.println("----------------------------");
+
+    delay(1000);
+}
