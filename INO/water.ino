@@ -7,8 +7,8 @@ byte ADDR;
 MCP3021 mcp3021;
 
 // калибровочные значения с АЦП
-const float air_value = 804.0;
-const float water_value = 420.0;
+const float air_value = 600.0;
+const float water_value = 300.0;
 const float moisture_0 = 0.0;
 const float moisture_100 = 100.0;
 
