@@ -33,6 +33,11 @@ VL53L0X lox_2;
 CRGB leds_1[num_LEDS];
 CRGB leds_2[num_LEDS];
 
+int a = 1;
+int b = 2;
+
+int svetoforTime = 30000*a/(a+b);
+
 /*
 const char WIFI_SSID[] = "TP-Link_4F90";         // CHANGE IT
 const char WIFI_PASSWORD[] = "NTOContest202324"; // CHANGE IT
@@ -131,31 +136,29 @@ void loop() {
   */
 
   Serial.println("Traffic light is Red/Green");
-  light(1, 3, 1);
-    light(2, 3, 3);
-  delay(15000);
-  light(1, 3, 0);
+  light(1, 3, 1); //красный на 1
+    light(2, 3, 3); //зеленый на 2
+  delay(svetoforTime);
+  light(1, 3, 0); 
     light(2, 3, 0);
 
-  Serial.println("Traffic light is Yellow");
-  light(1, 2, 2);
-    light(2, 2, 2);
+  light(1, 2, 2); //желтый после красного на 1
+    light(2, 1, 1); //красный после зеленого на 2
   delay(2000);
   light(1, 2, 0);
-    light(2, 2, 0);
+    light(2, 1, 0);
 
   Serial.println("Traffic light is Green/Red");
-  light(1, 1, 3);
-    light(2, 1, 1);
-  delay(15000);
+  light(1, 1, 3); //зеленый после желтого на 1
+    light(2, 1, 1); // еще красный после зеленого на 2
+  delay(svetoforTime-2000);
   light(1, 1, 0);
     light(2, 1, 0);
 
-  Serial.println("Traffic light is Yellow");
-  light(1, 2, 2);
-    light(2, 2, 2);
+  light(1, 1, 3); // еще зеленый после желтого на 1
+    light(2, 2, 2); //желтый после красного на 2
   delay(2000);
-  light(1, 2, 0);
+  light(1, 1, 0);
     light(2, 2, 0);
 }
 
