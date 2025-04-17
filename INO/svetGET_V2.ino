@@ -3,6 +3,8 @@
 #include <Wire.h>
 #include <PCA9634.h>
 #include <BH1750.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
 
 #define I2C_HUB_ADDR        0x70
 #define EN_MASK             0x08
@@ -19,7 +21,6 @@ String PATH_NAME_1   = "/lampa1";      // CHANGE IT
 String PATH_NAME_2   = "/lampa2";      // CHANGE IT
 String PATH_NAME_3   = "/lampa3";      // CHANGE IT
 String PATH_NAME_4   = "/lampa4";      // CHANGE IT
-//String PATH_NAME   = "/products/arduino.php";      // CHANGE IT
 String queryString = "value=10";
 
 BH1750 LightSensor_7;
@@ -31,6 +32,8 @@ PCA9634 fonar7(0x1C);
 PCA9634 fonar6(0x0C);
 PCA9634 fonar5(0x18);
 PCA9634 fonar4(0x14);
+
+Adafruit_BME280 bme280;
 
 void setup() {
   Wire.begin();
@@ -57,6 +60,15 @@ void setup() {
 
   setBusChannel(0x04);
   LightSensor_4.begin();
+
+  setBusChannel(0x03);
+  bool bme_status = bme280.begin();
+  if (!bme_status) {
+    Serial.println("Not found THP80 at 0x77...");
+    bme_status = bme280.begin(0x76);
+    if (!bme_status)
+      Serial.println("No THP80 sensor Detected. Check connections.");
+  }
 
 /*
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -139,6 +151,15 @@ void loop() {
       fonar4.setLedDriverMode(0, PCA9634_LEDOFF);
     }
   }
+
+  setBusChannel(0x03);
+  float t = bme280.readTemperature();
+  float h = bme280.readHumidity();
+  float p = bme280.readPressure() / 100.0F;
+  // Вывод измеренных значений в терминал
+  Serial.println("Air temperature = " + String(t, 1) + " *C");
+  Serial.println("Air humidity = " + String(h, 1) + " %");
+  Serial.println("Air pressure = " + String(p, 1) + " hPa"); // 1 mmHg = 1 hPa / 1.33
 }
 
 bool setBusChannel(uint8_t i2c_channel)
