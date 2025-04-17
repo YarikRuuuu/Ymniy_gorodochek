@@ -139,41 +139,6 @@ void loop() {
       fonar4.setLedDriverMode(0, PCA9634_LEDOFF);
     }
   }
-  
-/*
-  HTTPClient http;
-
-  http.begin(HOST_NAME + PATH_NAME_1 + "?" + queryString);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  int httpCode = http.GET();
-
-  // httpCode will be negative on error
-  if (httpCode > 0) {
-    // file found at server
-    if (httpCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println(payload);
-    } else {
-      // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-    }
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-
-  http.end();
-  */
-  
-  /*
-  setBusChannel(0x07);
-  fonar7.setLedDriverMode(0, PCA9634_LEDOFF);
-  setBusChannel(0x06);
-  fonar6.setLedDriverMode(0, PCA9634_LEDOFF);
-  setBusChannel(0x05);
-  fonar5.setLedDriverMode(0, PCA9634_LEDOFF);
-  setBusChannel(0x04);
-  fonar4.setLedDriverMode(0, PCA9634_LEDOFF);
-  */
 }
 
 bool setBusChannel(uint8_t i2c_channel)
