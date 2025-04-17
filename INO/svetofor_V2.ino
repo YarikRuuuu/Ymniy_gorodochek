@@ -102,32 +102,46 @@ void loop() {
   setBusChannel(0x07);
   float dist_1 = lox_1.readRangeSingleMillimeters();
   // Вывод измеренных значений в терминал
-  Serial.println("Distance  = " + String(dist_1, 0) + " mm  ");
+  Serial.println("Distance_1  = " + String(dist_1, 0) + " mm  ");
 
   setBusChannel(0x06);
   float dist_2 = lox_2.readRangeSingleMillimeters();
   // Вывод измеренных значений в терминал
-  Serial.println("Distance  = " + String(dist_2, 0) + " mm  ");
+  Serial.println("Distance_2  = " + String(dist_2, 0) + " mm  ");
 
+/*
+  setBusChannel(0x05);
+  float t = bme280.readTemperature();
+  float h = bme280.readHumidity();
+  float p = bme280.readPressure() / 100.0F;
+  // Вывод измеренных значений в терминал
+  Serial.println("Air temperature = " + String(t, 1) + " *C");
+  Serial.println("Air humidity = " + String(h, 1) + " %");
+  Serial.println("Air pressure = " + String(p, 1) + " hPa"); // 1 mmHg = 1 hPa / 1.33
+  */
+
+  Serial.println("Traffic light is Red/Green");
   light(1, 3, 1);
     light(2, 3, 3);
-  delay(2000);
+  delay(15000);
   light(1, 3, 0);
     light(2, 3, 0);
 
+  Serial.println("Traffic light is Yellow");
   light(1, 2, 2);
     light(2, 2, 2);
   delay(2000);
   light(1, 2, 0);
     light(2, 2, 0);
 
-
+  Serial.println("Traffic light is Green/Red");
   light(1, 1, 3);
     light(2, 1, 1);
-  delay(2000);
+  delay(15000);
   light(1, 1, 0);
     light(2, 1, 0);
 
+  Serial.println("Traffic light is Yellow");
   light(1, 2, 2);
     light(2, 2, 2);
   delay(2000);
