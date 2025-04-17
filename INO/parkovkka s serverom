@@ -1,139 +1,159 @@
+#include <Wire.h>
+#include <VL53L0X.h>
+#include <MGS_FR403.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include "mcp3021.h"
+byte ADDR;
 
+const char WIFI_SSID[] = "PSI";
+const char WIFI_PASSWORD[] = "PSI";
 
-// Определения пинов
-#define DISTANCE_SENSOR_PIN A0 // Аналоговый пин для датчика расстояния
-#define LEAK_SENSOR_PIN A1     // Аналоговый пин для датчика протечки
-#define FLAME_SENSOR_PIN A2    // Аналоговый пин для датчика пламени
-#define STATUS_LED_PIN 13      // Пин для светодиода, показывающего статус парковки
-#define SERVER_UPDATE_INTERVAL 5000 // Интервал отправки данных на сервер (в миллисекундах)
+MGS_FR403 Fire;
+VL53L0X lox;
+MCP3021 mcp3021;
 
-// Переменные
+// калибровочные значения с АЦП
+const float air_value = 600.0;
+const float water_value = 300.0;
+const float moisture_0 = 0.0;
+const float moisture_100 = 100.0;
 bool isOccupied = false;
 bool isLeakDetected = false;
 bool isFlameDetected = false;
-int distanceValue = 0;
+int dist = 0;
 unsigned long lastServerUpdate = 0;
 bool isCharging = false;
 unsigned long chargingStartTime = 0;
 float charge = 0.0;
 
-// Настройки сервера (замените на свои)
-const char* serverAddress = "your_server_address.com";
-const int serverPort = 80;
 
-#include <WiFi.h>
-#include <HTTPClient.h>
+void setup() {
+  // Инициализация последовательного порта
+  Serial.begin(9600);
+  // Инициализация датчика
+  Wire.begin();
+  lox.init();
+  lox.setTimeout(500);
+  // параметры для режима высокой точности
+  lox.setMeasurementTimingBudget(200000);
+  Fire.begin();
+  ADDR = scan(); // скан адреса
+  Serial.println(" АДРЕС:");
+  Serial.println(ADDR, HEX);
+  // Инициализация АЦП
+  ADDR = ADDR-0x48;
+  mcp3021.begin(ADDR);
+}
 
-const char* ssid = "your_SSID";
-const char* password = "your_PASSWORD";
+void loop() {
+  Fire.get_ir_and_vis();
+  Serial.print("ИК: ");
+  Serial.println(String(Fire.ir_data, 1));
+  Serial.print("Видимый: ");
+  Serial.println(String(Fire.vis_data, 1));
+  delay(250);
+  // Измерение
+  float dist = lox.readRangeSingleMillimeters();
+  // Вывод измеренных значений в терминал
+  Serial.println("Distance  = " + String(dist, 0) + " mm  ");
+  delay(250);
+  float adc0 = mcp3021.readADC();
+  float h = map(adc0, air_value, water_value, moisture_0, moisture_100);
+  // Вывод измеренных значений в терминал
+  Serial.println("Water level = " + String(h, 1) + " %");
+  delay(250);
+}
 
+byte scan() { // сканирование адреса
+  byte error, address;
+  Serial.println("Сканирую...");
+  for (address = 8; address < 127; address++ ) {
+	Wire.beginTransmission(address);
+    error = Wire.endTransmission();
 
-
-
+    if (error == 0) {
+      Serial.print("I2C устройство найдено по адресу 0x");
+      if (address < 16)
+        Serial.print("0");
+      Serial.print(address, HEX);
+      return address;
+      Serial.println(" !");
+      break;
+    }
+  }
+}
 
 void charging(){
-  if (!isCharging && dist < DISTANCE_THRESHOLD) {
+  if (dist < 150 && isCharging == false ) {
     // Начало зарядки
     isCharging = true;
     chargingStartTime = millis();
     Serial.println("Начало зарядки");
-  }
-
+  } 
   if (isCharging) {
     unsigned long currentTime = millis();
     unsigned long elapsedTime = currentTime - chargingStartTime;
 
-    if (elapsedTime < CHARGE_TIME && dist < DISTANCE_THRESHOLD) {
+    if (elapsedTime < 60000 && dist < 150) {
       // Зарядка продолжается
-      charge = ((float)elapsedTime / (float)CHARGE_TIME) * 100.0;
+      charge = ((float)elapsedTime / 60000) * 100.0;
       Serial.print("Процент зарядки: ");
       Serial.println(charge);
 
-      // Отправка данных на сервер (пример)
-      sendChargeDataToServer(charge);
+      // Отправка данных на сервер 
+      
+      
+      
+      
+      
+      
+      
+      // САША ДОЛЖЕН НАПИСАТЬ ОТПРАВКУ ЗАРЯДКИ НА СЕРВЕР
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     } else {
       // Зарядка завершена или электромобиль уехал
       isCharging = false;
-      if (dist >= DISTANCE_THRESHOLD) {
+      if (dist >= 150) {
         Serial.println("Зарядка прервана: электромобиль уехал");
       } else {
         Serial.println("Зарядка завершена");
         charge = 100.0;
-        sendChargeDataToServer(charge);
+        
+
+
+
+
+
+
+
+       // САША ОТПРАВЛЯЕТ НА СЕРВЕР ЧТО ЗАРЯДКА ЗАВЕРШЕНА
+
+
+
+
+
+
+
+
+
       }
       charge = 0.0; // Сбрасываем процент зарядки
     }
-  }
-}
-
-
-void setup() {
-  Serial.begin(115200);
-
-  // Подключение к WiFi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  pinMode(STATUS_LED_PIN, OUTPUT);
-}
-
-void loop() {
-  // Чтение данных с датчиков
-  distanceValue = analogRead(DISTANCE_SENSOR_PIN);
-  isLeakDetected = (analogRead(LEAK_SENSOR_PIN) > 500); // Порог для датчика протечки (нужно подобрать)
-  isFlameDetected = (analogRead(FLAME_SENSOR_PIN) > 500); // Порог для датчика пламени (нужно подобрать)
-
-  // Определение занятости парковки (нужно откалибровать значение)
-  isOccupied = (distanceValue < 50); // Порог для датчика расстояния (нужно подобрать)
-
-  // Обновление светодиода статуса
-  digitalWrite(STATUS_LED_PIN, isOccupied ? HIGH : LOW);
-
-  // Отправка данных на сервер (периодически)
-  if (millis() - lastServerUpdate > SERVER_UPDATE_INTERVAL) {
-    sendDataToServer();
-    lastServerUpdate = millis();
-  }
-
-  delay(100);
-}
-
-void sendDataToServer() {
-  if (WiFi.status() == WL_CONNECTED) {
-
-    HTTPClient http;
-
-    http.begin(serverAddress, serverPort, "/update_parking_data");  // Замените "/update_parking_data" на ваш URL
-    charging();
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    String httpRequestData = "isOccupied=" + String(isOccupied) +
-                             "&isLeakDetected=" + String(isLeakDetected) +
-                             "&isFlameDetected=" + String(isFlameDetected) +
-                             "&distanceValue=" + String(distanceValue);
-
-    int httpResponseCode = http.POST(httpRequestData);
-
-    if (httpResponseCode > 0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      String response = http.getString();
-      Serial.println(response);
-    } else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
-  } else {
-    Serial.println("WiFi Disconnected");
   }
 }
