@@ -18,10 +18,11 @@ const float air_value = 600.0;
 const float water_value = 300.0;
 const float moisture_0 = 0.0;
 const float moisture_100 = 100.0;
+
+
 bool isOccupied = false;
 bool isLeakDetected = false;
 bool isFlameDetected = false;
-int dist = 0;
 unsigned long lastServerUpdate = 0;
 bool isCharging = false;
 unsigned long chargingStartTime = 0;
@@ -47,21 +48,63 @@ void setup() {
 }
 
 void loop() {
+  float dist = lox.readRangeSingleMillimeters();
+  // Вывод измеренных значений в терминал
+  Serial.println("Distance  = " + String(dist, 0) + " mm  ");
+
+  if (dist < 150) {
+    // Начало зарядки
+    isCharging = true;
+    isOccupied = true;
+    chargingStartTime = millis();
+    Serial.println("Начало зарядки");
+  } 
+  if (isCharging) {
+    unsigned long currentTime = millis();
+    unsigned long chargingDuration = currentTime - chargingStartTime;
+
+    if (chargingDuration < 60000 && dist < 50) {
+      // Зарядка продолжается
+      chargePercent = ((float)chargingDuration / 60000) * 100.0;
+      Serial.print("Процент зарядки: ");
+      Serial.println(chargePercent);
+
+      // Отправка данных на сервер 
+      // САША ДОЛЖЕН НАПИСАТЬ ОТПРАВКУ ЗАРЯДКИ НА СЕРВЕР
+    } else {
+      // Зарядка завершена или электромобиль уехал
+      isCharging = false;
+      if (dist >= 150) {
+        Serial.println("Зарядка прервана: электромобиль уехал");
+      } else {
+        Serial.println("Зарядка завершена");
+        chargePercent = 100.0;
+       // САША ОТПРАВЛЯЕТ НА СЕРВЕР ЧТО ЗАРЯДКА ЗАВЕРШЕНА
+      }
+      chargePercent = 0.0; // Сбрасываем процент зарядки
+    }
+  }
+
   Fire.get_ir_and_vis();
   Serial.print("ИК: ");
   Serial.println(String(Fire.ir_data, 1));
   Serial.print("Видимый: ");
   Serial.println(String(Fire.vis_data, 1));
-  delay(250);
-  // Измерение
-  float dist = lox.readRangeSingleMillimeters();
-  // Вывод измеренных значений в терминал
-  Serial.println("Distance  = " + String(dist, 0) + " mm  ");
-  delay(250);
+
+  if (Fire.ir_data > 2500){
+    isFlameDetected = true;
+    //САША ОТПРАВЛЯЕТ ФОТО
+  }
+
   float adc0 = mcp3021.readADC();
   float h = map(adc0, air_value, water_value, moisture_0, moisture_100);
   // Вывод измеренных значений в терминал
   Serial.println("Water level = " + String(h, 1) + " %");
+
+  if (h > 50){
+    isLeakDetected = true;
+    //САША ОТПРАВЛЯЕТ ФОТО
+  }
   delay(250);
 }
 
@@ -80,80 +123,6 @@ byte scan() { // сканирование адреса
       return address;
       Serial.println(" !");
       break;
-    }
-  }
-}
-
-void charging(){
-  if (dist < 150) {
-    // Начало зарядки
-    isCharging = true;
-    chargingStartTime = millis();
-    Serial.println("Начало зарядки");
-  } 
-  if (isCharging) {
-    unsigned long currentTime = millis();
-    unsigned long elapsedTime = currentTime - chargingStartTime;
-
-    if (elapsedTime < 60000 && dist < 50) {
-      // Зарядка продолжается
-      charge = ((float)elapsedTime / 60000) * 100.0;
-      Serial.print("Процент зарядки: ");
-      Serial.println(charge);
-
-      // Отправка данных на сервер 
-      
-      
-      
-      
-      
-      
-      
-      // САША ДОЛЖЕН НАПИСАТЬ ОТПРАВКУ ЗАРЯДКИ НА СЕРВЕР
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    } else {
-      // Зарядка завершена или электромобиль уехал
-      isCharging = false;
-      if (dist >= 150) {
-        Serial.println("Зарядка прервана: электромобиль уехал");
-      } else {
-        Serial.println("Зарядка завершена");
-        charge = 100.0;
-        
-
-
-
-
-
-
-
-       // САША ОТПРАВЛЯЕТ НА СЕРВЕР ЧТО ЗАРЯДКА ЗАВЕРШЕНА
-
-
-
-
-
-
-
-
-
-      }
-      charge = 0.0; // Сбрасываем процент зарядки
     }
   }
 }
