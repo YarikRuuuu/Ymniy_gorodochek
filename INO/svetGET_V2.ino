@@ -102,11 +102,8 @@ void loop() {
   float light_5 = LightSensor_5.readLightLevel();
   setBusChannel(0x04);
   float light_4 = LightSensor_4.readLightLevel();
-  Serial.println("Ambient light intensity 7: " + String(light_7, 1) + " lx");
-  Serial.println("Ambient light intensity 6: " + String(light_6, 1) + " lx");
-  Serial.println("Ambient light intensity 5: " + String(light_5, 1) + " lx");
-  Serial.println("Ambient light intensity 4: " + String(light_4, 1) + " lx");
-  delay(200);
+  Serial.println("Ambient light intensity 7: " + String(light_7, 1) + " lx // " + "6: " + String(light_6, 1) + " lx // " + "5: " + String(light_5, 1) + " lx // " + "4: " + String(light_4, 1) + " lx");
+  delay(300);
 
   if (!manual){
     setBusChannel(0x07);
