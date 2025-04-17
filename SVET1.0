@@ -78,15 +78,16 @@ void setup() {
 }
 
 void loop() {
-  
-  http.begin(HOST_NAME + PATH_NAME_LA + "?" + LA);
+
+  http.begin(HOST_NAME + PATH_NAME_LA);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   int httpCode = http.GET();
+  LA=http.getString();
   Serial.println("LA: "+LA);
   http.end();
 
 
-  if (LA=="false" or LA=="unknown"){
+  if (LA=="false" or LA=="unknown" or LA==""){
 
   setBusChannel(0x07);
   float light_7 = LightSensor_7.readLightLevel();
@@ -135,27 +136,31 @@ void loop() {
 
   else if (LA=="true"){
 
-  http.begin(HOST_NAME + PATH_NAME_L1 + "?" + LA_ON1);
+  http.begin(HOST_NAME + PATH_NAME_L1);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   int httpCode = http.GET();
+  LA_ON1=http.getString();
   Serial.println("LA_ON1: "+LA_ON1);
   http.end();
 
-  http.begin(HOST_NAME + PATH_NAME_L2 + "?" + LA_ON2);
+  http.begin(HOST_NAME + PATH_NAME_L2);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
    httpCode = http.GET();
+   LA_ON2=http.getString();
   Serial.println("LA_ON2: "+LA_ON2);
   http.end();
 
-  http.begin(HOST_NAME + PATH_NAME_L3 + "?" + LA_ON3);
+  http.begin(HOST_NAME + PATH_NAME_L3);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
    httpCode = http.GET();
+   LA_ON3=http.getString();
   Serial.println("LA_ON3: "+LA_ON3);
   http.end();
 
-  http.begin(HOST_NAME + PATH_NAME_L4 + "?" + LA_ON4);
+  http.begin(HOST_NAME + PATH_NAME_L4);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
    httpCode = http.GET();
+   LA_ON4=http.getString();
   Serial.println("LA_ON4: "+LA_ON4);
   http.end();
 
@@ -181,7 +186,6 @@ void loop() {
     }
 
   }
-
 
   setBusChannel(0x03);
   float t = bme280.readTemperature();
