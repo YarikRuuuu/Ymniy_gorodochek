@@ -78,7 +78,7 @@ void setup() {
 }
 
 void loop() {
-   HTTPClient http;
+  
   http.begin(HOST_NAME + PATH_NAME_LA + "?" + LA);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   int httpCode = http.GET();
@@ -100,7 +100,7 @@ void loop() {
   delay(300);
 
     setBusChannel(0x07);
-    float light_7 = LightSensor_7.readLightLevel();
+     light_7 = LightSensor_7.readLightLevel();
     if (light_7 < 800){
       fonar7.setLedDriverMode(0, PCA9634_LEDON);
     }
@@ -108,7 +108,7 @@ void loop() {
       fonar7.setLedDriverMode(0, PCA9634_LEDOFF);
     }
     setBusChannel(0x06);
-    float light_6 = LightSensor_6.readLightLevel();
+     light_6 = LightSensor_6.readLightLevel();
     if (light_6 < 800){
         fonar6.setLedDriverMode(0, PCA9634_LEDON);
     }
@@ -116,7 +116,7 @@ void loop() {
       fonar6.setLedDriverMode(0, PCA9634_LEDOFF);
     }
     setBusChannel(0x05);
-    float light_5 = LightSensor_5.readLightLevel();
+     light_5 = LightSensor_5.readLightLevel();
     if (light_5 < 800){
         fonar5.setLedDriverMode(0, PCA9634_LEDON);
     }
@@ -124,7 +124,7 @@ void loop() {
       fonar5.setLedDriverMode(0, PCA9634_LEDOFF);
     }
     setBusChannel(0x04);
-    float light_4 = LightSensor_4.readLightLevel();
+     light_4 = LightSensor_4.readLightLevel();
     if (light_4 < 800){
         fonar4.setLedDriverMode(0, PCA9634_LEDON);
     }
