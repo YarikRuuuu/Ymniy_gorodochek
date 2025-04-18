@@ -87,19 +87,49 @@ void loop() {
   Serial.println("LA" + LA);
   http.end();
 
-
-  if (LA=="false" or LA=="unknown" or LA==""){
+  String queryString="value=";
+  String PATH_NAME_L1="/lamp_sost1";
+  String PATH_NAME_L2="/lamp_sost2";
+  String PATH_NAME_L3="/lamp_sost3";
+  String PATH_NAME_L4="/lamp_sost4";
 
   setBusChannel(0x07);
   float light_7 = LightSensor_7.readLightLevel();
+  http.begin(HOST_NAME + PATH_NAME_L1 + "?" + queryString+String(light_7,1));
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  httpCode = http.GET();
+  Serial.println("sent: "+ String(light_7,1));
+  http.end();
+
   setBusChannel(0x06);
   float light_6 = LightSensor_6.readLightLevel();
+  http.begin(HOST_NAME + PATH_NAME_L2 + "?" + queryString+String(light_6,1));
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  httpCode = http.GET();
+  Serial.println("sent: "+ String(light_6,1));
+  http.end();
+
   setBusChannel(0x05);
   float light_5 = LightSensor_5.readLightLevel();
+  http.begin(HOST_NAME + PATH_NAME_L3 + "?" + queryString+String(light_5,1));
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  httpCode = http.GET();
+  Serial.println("sent: "+ String(light_5,1));
+  http.end();
+
   setBusChannel(0x04);
   float light_4 = LightSensor_4.readLightLevel();
+  http.begin(HOST_NAME + PATH_NAME_L4 + "?" + queryString+String(light_4,1));
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  httpCode = http.GET();
+  Serial.println("sent: "+ String(light_4,1));
+  http.end();
+
   Serial.println("Ambient light intensity 7: " + String(light_7, 1) + " lx // " + "6: " + String(light_6, 1) + " lx // " + "5: " + String(light_5, 1) + " lx // " + "4: " + String(light_4, 1) + " lx");
   delay(500);
+
+
+  if (LA=="false" or LA=="unknown" or LA==""){
 
     setBusChannel(0x07);
      light_7 = LightSensor_7.readLightLevel();
@@ -135,7 +165,7 @@ void loop() {
     }
   }
 
-  else if (LA=="true"){
+  else if (LA=="true" or LA=="checked"){
 
   http.begin(HOST_NAME + PATH_NAME_L1);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -165,22 +195,22 @@ void loop() {
   Serial.println("LA_ON4: "+LA_ON4);
   http.end();
 
-    if (LA_ON1=="true"){
+    if (LA_ON1=="true" or LA_ON1=="checked"){
     fonar7.setLedDriverMode(0, PCA9634_LEDON);
     } else {
       fonar7.setLedDriverMode(0, PCA9634_LEDOFF);
     }
-    if (LA_ON2=="true"){
+    if (LA_ON2=="true" or LA_ON2=="checked"){
     fonar6.setLedDriverMode(0, PCA9634_LEDON);
     } else {
       fonar6.setLedDriverMode(0, PCA9634_LEDOFF);
     }
-    if (LA_ON3=="true"){
+    if (LA_ON3=="true" or LA_ON3=="checked"){
     fonar5.setLedDriverMode(0, PCA9634_LEDON);
     } else {
       fonar5.setLedDriverMode(0, PCA9634_LEDOFF);
     }
-    if (LA_ON4=="true"){
+    if (LA_ON4=="true" or LA_ON4=="checked"){
     fonar4.setLedDriverMode(0, PCA9634_LEDON);
     } else {
       fonar4.setLedDriverMode(0, PCA9634_LEDOFF);
@@ -197,7 +227,7 @@ void loop() {
   Serial.println("Air humidity = " + String(h, 1) + " %");
   Serial.println("Air pressure = " + String(p, 1) + " hPa"); // 1 mmHg = 1 hPa / 1.33
 
-String queryString="value=";
+queryString="value=";
 String PATH_NAME_T="/temperature";
 String PATH_NAME_H="/humidity";
 String PATH_NAME_P="/pressure";
