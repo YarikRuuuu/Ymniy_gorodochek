@@ -13,6 +13,7 @@ const char WIFI_PASSWORD[] = "NTOContest202324";
 HTTPClient http;
 String HOST_NAME="http://192.168.0.24:8000/";
 String PATH_NAME_P="/parking";
+String PATH_NAME_PD="/parking_dist";
 String PATH_NAME_CH="/charging";
 String PATH_NAME_L = "/leaks";
 String PATH_NAME_F = "/fire";
@@ -65,6 +66,11 @@ void loop() {
   float dist = lox.readRangeSingleMillimeters();
   // Вывод измеренных значений в терминал
   Serial.println("Distance  = " + String(dist, 0) + " mm  ");
+
+http.begin(HOST_NAME + PATH_NAME_PD+ "?" + queryString + String(dist,0));
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  http.end();
 
   if (dist < 150) {
     // Начало зарядки
