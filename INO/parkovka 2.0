@@ -1,0 +1,186 @@
+#include <Wire.h>
+#include <VL53L0X.h>
+#include <MGS_FR403.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include "mcp3021.h"
+byte ADDR;
+uint8_t adcDeviceId = 0x4B;
+int chargePercent;
+const char WIFI_SSID[] = "TP-Link_4F90";
+const char WIFI_PASSWORD[] = "NTOContest202324";
+
+HTTPClient http;
+String HOST_NAME="192.168.0.24:8000";
+String PATH_NAME_P="/parking";
+String PATH_NAME_CH="/charging";
+String PATH_NAME_L = "/leaks";
+String PATH_NAME_F = "/fire";
+String queryString="value=";
+
+MGS_FR403 Fire;
+VL53L0X lox;
+MCP3021 mcp3021;
+
+// калибровочные значения с АЦП
+const float air_value = 600.0;
+const float water_value = 300.0;
+const float moisture_0 = 0.0;
+const float moisture_100 = 100.0;
+
+bool isCharging = false;
+String isOccupied = "false";
+String isLeakDetected = "false";
+String isFlameDetected = "false";
+unsigned long lastServerUpdate = 0;
+
+unsigned long chargingStartTime = 0;
+float charge = 0.0;
+
+
+void setup() {
+  // Инициализация последовательного порта
+  Serial.begin(9600);
+  // Инициализация датчика
+  Wire.begin();
+  lox.init();
+  lox.setTimeout(500);
+  // параметры для режима высокой точности
+  lox.setMeasurementTimingBudget(200000);
+  Fire.begin();
+  ADDR = scan(); // скан адреса
+  ADDR = ADDR-0x48;
+  mcp3021.begin(adcDeviceId);
+}
+
+void loop() {
+  float dist = lox.readRangeSingleMillimeters();
+  // Вывод измеренных значений в терминал
+  Serial.println("Distance  = " + String(dist, 0) + " mm  ");
+
+  if (dist < 150) {
+    // Начало зарядки
+    isCharging = true;
+    isOccupied = "true";
+    chargingStartTime = millis();
+    Serial.println("Начало зарядки");
+
+    http.begin(HOST_NAME + PATH_NAME_P+ "?" + queryString + isOccupied);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("Parking: "+isOccupied);
+  http.end();
+  } 
+  if (isCharging) {
+    unsigned long currentTime = millis();
+    unsigned long chargingDuration = currentTime - chargingStartTime;
+
+    if (chargingDuration < 60000 && dist < 150) {
+      // Зарядка продолжается
+       chargePercent = ((float)chargingDuration / 60000) * 100.0;
+      Serial.print("Процент зарядки: ");
+      Serial.println(chargePercent);
+
+      http.begin(HOST_NAME + PATH_NAME_CH + "?" + queryString + String(chargePercent,1));
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    int httpCode = http.GET();
+    Serial.println("charge: "+String(chargePercent,1));
+    http.end();
+    } else {
+      // Зарядка завершена или электромобиль уехал
+      isCharging = false;
+       chargePercent = 0.0;
+
+      if (dist >= 150) {
+        Serial.println("Зарядка прервана: электромобиль уехал");
+      } else {
+        Serial.println("Зарядка завершена");
+        chargePercent = 100.0;
+       // САША ОТПРАВЛЯЕТ НА СЕРВЕР ЧТО ЗАРЯДКА ЗАВЕРШЕНА
+        http.begin(HOST_NAME + PATH_NAME_CH + "?" + queryString + String(chargePercent,1));
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    int httpCode = http.GET();
+    Serial.println("charge: "+String(chargePercent,1));
+    http.end();
+      }
+      chargePercent = 0.0; // Сбрасываем процент зарядки
+      http.begin(HOST_NAME + PATH_NAME_CH + "?" + queryString + "-");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    int httpCode = http.GET();
+    Serial.println("charge: -");
+    http.end();
+    }
+  }
+
+  Fire.get_ir_and_vis();
+  Serial.print("ИК: ");
+  Serial.println(String(Fire.ir_data, 1));
+  Serial.print("Видимый: ");
+  Serial.println(String(Fire.vis_data, 1));
+
+  if (Fire.ir_data > 2500){
+    isFlameDetected = true;
+    http.begin(HOST_NAME + PATH_NAME_F + "?" + queryString + isFlameDetected);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("fire: "+isFlameDetected);
+  http.end();
+  } else{
+    isFlameDetected = "false";
+        http.begin(HOST_NAME + PATH_NAME_F + "?" + queryString + isFlameDetected);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("fire: "+isFlameDetected);
+  http.end();
+  }
+
+  float adc0 = mcp3021.readADC();
+  float h = map(adc0, air_value, water_value, moisture_0, moisture_100);
+  // Вывод измеренных значений в терминал
+  Serial.println("Water level = " + String(h, 1) + " %");
+
+  if (h > 50){
+    isLeakDetected = "true";
+    http.begin(HOST_NAME + PATH_NAME_L + "?" + queryString + isLeakDetected);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("leaks: "+isLeakDetected);
+  http.end();
+  } else{
+      isLeakDetected="false";
+      http.begin(HOST_NAME + PATH_NAME_L + "?" + queryString + isLeakDetected);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("leaks: "+isLeakDetected);
+  http.end();
+  }
+ 
+  if (isCharging ==  false){
+  http.begin(HOST_NAME + PATH_NAME_P + "?" + queryString + isOccupied);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  int httpCode = http.GET();
+  Serial.println("Parking: "+isOccupied);
+  http.end();
+}
+
+  delay(2000);
+}
+
+byte scan() { // сканирование адреса
+  byte error, address;
+  Serial.println("Сканирую...");
+  for (address = 8; address < 127; address++ ) {
+	Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+
+    if (error == 0) {
+      Serial.print("I2C устройство найдено по адресу 0x");
+      if (address < 16)
+        Serial.print("0");
+      Serial.print(address, HEX);
+      return address;
+      Serial.println(" !");
+      break;
+    }
+  }
+}
